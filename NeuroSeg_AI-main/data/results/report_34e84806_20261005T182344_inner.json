@@ -1,0 +1,37 @@
+{
+  "report_generated_at": "2026-10-05T18:23:44.980638",
+  "disclaimer": "For research and education only; not for diagnosis or treatment.",
+  "case_id": "41f3e8a7-edfc-4874-aec2-dade2b4a3ec7",
+  "job_id": "34e84806-5c29-4b9f-9f17-4dde38779ce7",
+  "model": {
+    "id": "36e7d69f-0e6d-45cd-8fa2-c9e2570f0789",
+    "architecture": "unet_baseline",
+    "version": "v1.0",
+    "threshold": 0.5
+  },
+  "processing_ms": 2669,
+  "measurements": {
+    "foreground_pixels": 0,
+    "total_pixels": 306705,
+    "foreground_fraction": 0.0,
+    "connected_component_count": 0,
+    "bounding_box": null
+  },
+  "preprocessing": {
+    "orig_w": 805,
+    "orig_h": 381,
+    "input_size": 256,
+    "new_w": 256,
+    "new_h": 121,
+    "pad_left": 0,
+    "pad_top": 67,
+    "mean": 0.5,
+    "std": 0.5
+  },
+  "limitations": [
+    "2D single-slice analysis only; no 3D volume inferred.",
+    "No physical pixel spacing available; pixel counts only.",
+    "No anatomical orientation from an un-oriented screenshot.",
+    "Foreground region is a mask component, not a confirmed tumor."
+  ]
+}

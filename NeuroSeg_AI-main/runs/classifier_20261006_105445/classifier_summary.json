@@ -1,0 +1,35 @@
+{
+  "architecture": "DenseNet121 (frozen backbone + trained classifier head)",
+  "best_test_accuracy": 0.525,
+  "best_test_accuracy_pct": 52.5,
+  "classes": [
+    "glioma",
+    "meningioma",
+    "notumor",
+    "pituitary"
+  ],
+  "num_classes": 4,
+  "epochs_trained": 3,
+  "training_curves": {
+    "1": {
+      "train_loss": 1.360085,
+      "train_acc": 0.325,
+      "test_loss": 1.299308,
+      "test_acc": 0.475
+    },
+    "2": {
+      "train_loss": 1.220504,
+      "train_acc": 0.5625,
+      "test_loss": 1.247851,
+      "test_acc": 0.4875
+    },
+    "3": {
+      "train_loss": 1.157486,
+      "train_acc": 0.66,
+      "test_loss": 1.230254,
+      "test_acc": 0.525
+    }
+  },
+  "completed_at": "2026-10-06T10:56:20.276964",
+  "checkpoint": "runs\\classifier_20261006_105445\\classifier_best.pt"
+}

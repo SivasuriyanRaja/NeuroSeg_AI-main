@@ -1,0 +1,15 @@
+architecture: unet_baseline
+image_dir: data/dataset
+mask_dir: data/dataset
+input_size: 256
+mean: 0.5
+std: 0.5
+batch_size: 8
+epochs: 50
+patience: 10
+learning_rate: 0.001
+val_fraction: 0.15
+test_fraction: 0.15
+threshold: 0.5
+seed: 42
+use_cuda: true
