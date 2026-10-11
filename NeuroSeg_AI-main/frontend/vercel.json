@@ -4,7 +4,18 @@
   "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://neuroseg-ai-main.onrender.com/api/:path*"
+    },
+    {
+      "source": "/api",
+      "destination": "https://neuroseg-ai-main.onrender.com/api"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {

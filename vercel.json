@@ -4,19 +4,16 @@
     "frontend": {
       "root": "NeuroSeg_AI-main/frontend",
       "framework": "vite"
-    },
-    "backend": {
-      "root": "NeuroSeg_AI-main/backend",
-      "framework": "fastapi",
-      "entrypoint": "main:app"
     }
   },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": {
-        "service": "backend"
-      }
+      "source": "/api/:path*",
+      "destination": "https://neuroseg-ai-main.onrender.com/api/:path*"
+    },
+    {
+      "source": "/api",
+      "destination": "https://neuroseg-ai-main.onrender.com/api"
     },
     {
       "source": "/(.*)",

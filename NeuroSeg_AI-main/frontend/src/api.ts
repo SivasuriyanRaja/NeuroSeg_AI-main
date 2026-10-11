@@ -197,8 +197,10 @@ export const getStorage = () =>
 export const createReport = (jobId: string, format: string) =>
   api.post<Report>(`/jobs/${jobId}/report`, { format })
 
-export const assetUrl = (filename: string, type: 'upload' | 'result' = 'result') =>
-  `/api/assets/${filename}?type=${type}`
+export const assetUrl = (filename: string, type: 'upload' | 'result' = 'result') => {
+  const base = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '/api'
+  return `${base}/assets/${filename}?type=${type}`
+}
 
 export const getRevisions = (jobId: string) =>
   api.get<MaskRevision[]>(`/jobs/${jobId}/revisions`)
