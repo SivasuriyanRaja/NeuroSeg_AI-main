@@ -3,6 +3,7 @@ NeuroSeg AI — Application Settings
 Reads from environment variables / .env file.
 """
 from __future__ import annotations
+import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,10 +12,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # Paths
-    data_dir: Path = Path("../data")
-    upload_dir: Path = Path("../data/uploads")
-    results_dir: Path = Path("../data/results")
-    model_dir: Path = Path("../data/models")
+    data_dir: Path = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parent.parent / "data"))
+    upload_dir: Path = Path(os.environ.get("UPLOAD_DIR", Path(__file__).resolve().parent.parent / "data" / "uploads"))
+    results_dir: Path = Path(os.environ.get("RESULTS_DIR", Path(__file__).resolve().parent.parent / "data" / "results"))
+    model_dir: Path = Path(os.environ.get("MODEL_DIR", Path(__file__).resolve().parent.parent / "data" / "models"))
 
     # Database
     database_url: str = "sqlite:///./neuroseg.db"
