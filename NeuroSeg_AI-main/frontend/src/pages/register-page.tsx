@@ -58,8 +58,9 @@ export function RegisterPage() {
     setLoading(true);
 
     try {
+      const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
       const computedUsername = username || `${firstName} ${lastName}`.trim();
-      const regRes = await fetch('/api/auth/register', {
+      const regRes = await fetch(`${apiBase}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -82,7 +83,7 @@ export function RegisterPage() {
       const body = new URLSearchParams();
       body.append('username', email);
       body.append('password', password);
-      const loginRes = await fetch('/api/auth/login', {
+      const loginRes = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),

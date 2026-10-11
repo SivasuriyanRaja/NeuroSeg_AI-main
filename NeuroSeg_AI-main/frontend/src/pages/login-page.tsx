@@ -27,11 +27,12 @@ export function LoginPage() {
     setLoading(true);
 
     try {
+      const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
       const body = new URLSearchParams();
       body.append('username', email);
       body.append('password', password);
 
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
@@ -46,7 +47,7 @@ export function LoginPage() {
       
       // Fetch user profile immediately
       try {
-        const meRes = await fetch('/api/auth/me', {
+        const meRes = await fetch(`${apiBase}/auth/me`, {
           headers: { Authorization: `Bearer ${json.access_token}` },
         });
         if (meRes.ok) {

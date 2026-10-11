@@ -5,8 +5,16 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://neuroseg-ai-main.onrender.com/api/:path*"
+      "source": "/api/:match*/",
+      "destination": "https://neuroseg-ai-main.onrender.com/api/:match*/"
+    },
+    {
+      "source": "/api/:match*",
+      "destination": "https://neuroseg-ai-main.onrender.com/api/:match*"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "https://neuroseg-ai-main.onrender.com/api/$1"
     },
     {
       "source": "/api",

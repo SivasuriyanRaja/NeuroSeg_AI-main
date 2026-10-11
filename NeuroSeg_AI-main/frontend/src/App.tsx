@@ -17,6 +17,7 @@ import AdminSettings from './pages/AdminSettings';
 import { useAuth } from './contexts/AuthContext';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 type CaseStatus = 'Ready' | 'Review' | 'Demo';
 type CaseData = {
@@ -358,11 +359,11 @@ function CaseWorkspace() {
   useEffect(() => {
     getCase(params.id!).then(r => { setC(r.data); setNotes(r.data.notes || ''); }).catch(e => console.error(e));
     // Fetch latest job and result
-    fetch(`/api/jobs/case/${params.id}`).then(r=>r.json()).then(jobs => {
+    fetch(`${apiBase}/jobs/case/${params.id}`).then(r=>r.json()).then(jobs => {
       if (jobs.length > 0) {
         setJob(jobs[0]);
         if (jobs[0].status === 'completed') {
-           fetch(`/api/jobs/${jobs[0].id}/result`).then(r=>r.json()).then(res=>setResult(res)).catch(console.error);
+           fetch(`${apiBase}/jobs/${jobs[0].id}/result`).then(r=>r.json()).then(res=>setResult(res)).catch(console.error);
         }
       }
     }).catch(console.error);
@@ -372,7 +373,7 @@ function CaseWorkspace() {
     if(!c || notes === c.notes) return;
     setSaved(false);
     const t = window.setTimeout(() => {
-      fetch(`/api/cases/${c.id}`, {
+      fetch(`${apiBase}/cases/${c.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes })
@@ -391,7 +392,7 @@ function CaseWorkspace() {
         <div style={{padding:'12px 14px',borderBottom:'1px solid rgba(141,164,183,.1)',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}><div className="viewer-controls"><div className="segmented">{['original','overlay','mask','prob'].map(m=><button key={m} onClick={()=>setMode(m)} className={mode===m?'selected':''}>{m==='prob'?'Prob map':m[0].toUpperCase()+m.slice(1)}</button>)}</div><span className="status status-ready">VIEWER</span></div><div className="viewer-controls"><button className="icon-button" onClick={()=>setZoom(Math.max(.75,zoom-.25))} aria-label="Zoom out"><ZoomOut size={14}/></button><span className="mono" style={{fontSize:9,color:'#8fa0aa',minWidth:38,textAlign:'center'}}>{Math.round(zoom*100)}%</span><button className="icon-button" onClick={()=>setZoom(Math.min(2,zoom+.25))} aria-label="Zoom in"><ZoomIn size={14}/></button><button className="icon-button" onClick={()=>{setZoom(1);setPan({x:0,y:0})}} aria-label="Reset zoom and pan"><RotateCcw size={13}/></button></div></div>
         <div className="viewer-main" onPointerDown={e=>{if(!panEnabled)return;dragRef.current={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,originX:pan.x,originY:pan.y};setIsDragging(true);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{const d=dragRef.current;if(d&&d.pointerId===e.pointerId)setPan({x:d.originX+e.clientX-d.startX,y:d.originY+e.clientY-d.startY})}} onPointerUp={e=>{if(dragRef.current?.pointerId===e.pointerId){dragRef.current=null;setIsDragging(false)}}} onPointerCancel={()=>{dragRef.current=null;setIsDragging(false)}} style={{height:440,position:'relative',overflow:'hidden',cursor:isDragging?'grabbing':panEnabled?'grab':'default',touchAction:'none'}}>
           <div style={{position:'absolute',inset:0,transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`,transformOrigin:'center',transition:isDragging?'none':'transform .18s'}}>
-             {originalUrl && <img src={`/api/assets/${originalUrl}?type=upload`} style={{width:"100%",height:"100%",objectFit:"contain",position:'absolute',top:0,left:0}} alt="scan"/>}
+             {originalUrl && <img src={`${apiBase}/assets/${originalUrl}?type=upload`} style={{width:"100%",height:"100%",objectFit:"contain",position:'absolute',top:0,left:0}} alt="scan"/>}
              {result && mode !== 'original' && <img src={mode === 'overlay' ? result.overlay_url : mode === 'mask' ? result.mask_url : result.prob_map_url} style={{width:"100%",height:"100%",objectFit:"contain",position:'absolute',top:0,left:0,opacity:opacity/100}} alt={mode}/>}
              {!originalUrl && <ScanArt mode={mode}/>}
           </div>
@@ -462,22 +463,36 @@ function Analyze() {
       const token = localStorage.getItem('token') || '';
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       
-      const caseRes = await fetch('/api/cases/', { method: 'POST', body: fd, headers });
-      if (!caseRes.ok) throw new Error("Failed to upload");
+      const caseRes = await fetch(`${apiBase}/cases/`, { method: 'POST', body: fd, headers });
+      if (!caseRes.ok) {
+        let errMsg = "Failed to upload";
+        try {
+          const errData = await caseRes.json();
+          errMsg = errData.detail || errData.message || errMsg;
+        } catch {}
+        throw new Error(errMsg);
+      }
       const caseData = await caseRes.json();
       
-      const jobRes = await fetch(`/api/jobs/${caseData.id}/submit`, {
+      const jobRes = await fetch(`${apiBase}/jobs/${caseData.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({ model_version_id: model, threshold })
       });
-      if (!jobRes.ok) throw new Error("Failed to submit job");
+      if (!jobRes.ok) {
+        let errMsg = "Failed to submit job";
+        try {
+          const errData = await jobRes.json();
+          errMsg = errData.detail || errData.message || errMsg;
+        } catch {}
+        throw new Error(errMsg);
+      }
       const jobData = await jobRes.json();
       
       let completedJob = null;
       for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 1000));
-        const pRes = await fetch(`/api/jobs/${jobData.id}`, { headers });
+        const pRes = await fetch(`${apiBase}/jobs/${jobData.id}`, { headers });
         if (pRes.ok) {
           const pData = await pRes.json();
           if (pData.status === 'completed' || pData.status === 'failed') {
@@ -488,14 +503,15 @@ function Analyze() {
       }
       
       if (completedJob?.status === 'completed') {
-         const rRes = await fetch(`/api/jobs/${jobData.id}/result`, { headers });
+         const rRes = await fetch(`${apiBase}/jobs/${jobData.id}/result`, { headers });
          if (rRes.ok) {
            const resJson = await rRes.json();
            setResult(resJson);
            notify('Analysis completed successfully!');
          }
       } else {
-         setError("Analysis failed or timed out.");
+         const failureDetail = completedJob?.error_message ? `: ${completedJob.error_message}` : "";
+         setError("Analysis failed or timed out" + failureDetail);
       }
     } catch (e: any) {
        setError(e.message);
