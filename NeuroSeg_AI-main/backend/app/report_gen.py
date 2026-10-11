@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Tuple
 
 from PIL import Image, ImageDraw, ImageFont
-from sqlalchemy.orm import Session
+from typing import Any
 
 from app.config import settings
 from app.models import AnalysisJob, ReportFormat
@@ -21,7 +21,7 @@ def _results_path(filename: str) -> Path:
 
 
 def generate_report(
-    job: AnalysisJob, fmt: ReportFormat, db: Session
+    job: AnalysisJob, fmt: ReportFormat, db: Any
 ) -> Tuple[Path, int]:
     """Generate a deterministic report file. Returns (path, size_bytes)."""
     r = job.result

@@ -115,10 +115,11 @@ class AnalysisResultOut(BaseModel):
     connected_component_count: int
     predicted_class: Optional[str] = None
     predicted_confidence: Optional[float] = None
-    prob_map_filename: Optional[str] = None
-    mask_filename: Optional[str] = None
-    overlay_filename: Optional[str] = None
+    prob_map_url: Optional[str] = None
+    mask_url: Optional[str] = None
+    overlay_url: Optional[str] = None
     preprocessing_meta: Dict[str, Any]
+    openai_analysis: Optional[str] = None
     created_at: datetime
 
     @classmethod
@@ -132,10 +133,11 @@ class AnalysisResultOut(BaseModel):
             "connected_component_count": obj.connected_component_count,
             "predicted_class": obj.predicted_class,
             "predicted_confidence": obj.predicted_confidence,
-            "prob_map_filename": obj.prob_map_path,
-            "mask_filename": obj.mask_path,
-            "overlay_filename": obj.overlay_path,
+            "prob_map_url": f"/api/assets/{obj.prob_map_path}?type=result" if obj.prob_map_path else None,
+            "mask_url": f"/api/assets/{obj.mask_path}?type=result" if obj.mask_path else None,
+            "overlay_url": f"/api/assets/{obj.overlay_path}?type=result" if obj.overlay_path else None,
             "preprocessing_meta": obj.preprocessing_meta or {},
+            "openai_analysis": getattr(obj, "openai_analysis", None),
             "created_at": obj.created_at,
         }
         if obj.bounding_box_x is not None:

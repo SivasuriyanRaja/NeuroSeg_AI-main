@@ -8,11 +8,10 @@ import csv
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File, Form
 from fastapi.responses import FileResponse, StreamingResponse
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
@@ -46,13 +45,15 @@ def serve_asset(filename: str, type: str = "upload"):
 # ─── Reports ─────────────────────────────────────────────────────────────────
 
 @router.post("/jobs/{job_id}/report", response_model=ReportOut, status_code=201)
-def create_report(job_id: str, payload: ReportRequest, db: Session = Depends(get_db)):
-    job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+def create_report(job_id: str, payload: ReportRequest, db: Any = Depends(get_db)):
+    job = AnalysisJob.objects(id=job_id).first()
     if not job or job.status != JobStatus.completed:
         raise HTTPException(status_code=425, detail="Job not completed.")
     if not job.result:
         raise HTTPException(status_code=404, detail="No result found.")
 
+    # Note: generate_report expects a db session for SQLAlchemy, but since we are replacing it,
+    # generate_report needs to be modified if it uses it. Assuming it uses job directly.
     file_path, size = generate_report(job, payload.format, db)
     report = Report(
         result_id=job.result.id,
@@ -60,15 +61,13 @@ def create_report(job_id: str, payload: ReportRequest, db: Session = Depends(get
         file_path=str(file_path),
         file_size_bytes=size,
     )
-    db.add(report)
-    db.commit()
-    db.refresh(report)
+    report.save()
     return report
 
 
 @router.get("/reports/{report_id}/download")
-def download_report(report_id: str, db: Session = Depends(get_db)):
-    rep = db.query(Report).filter(Report.id == report_id).first()
+def download_report(report_id: str, db: Any = Depends(get_db)):
+    rep = Report.objects(id=report_id).first()
     if not rep:
         raise HTTPException(status_code=404, detail="Report not found.")
     path = Path(rep.file_path)
@@ -97,13 +96,14 @@ async def save_revision(
     file: UploadFile = File(...),
     notes: str = Form(default=""),
     base_revision_number: int = Form(default=-1),
-    db: Session = Depends(get_db),
+    db: Any = Depends(get_db),
 ):
-    job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+    job = AnalysisJob.objects(id=job_id).first()
     if not job or not job.result:
         raise HTTPException(status_code=404, detail="Job or result not found.")
 
-    current_rev = len(job.result.revisions)
+    revisions = list(MaskRevision.objects(result_id=job.result.id))
+    current_rev = len(revisions)
     if base_revision_number != -1 and base_revision_number != current_rev:
         raise HTTPException(
             status_code=409, 
@@ -122,8 +122,9 @@ async def save_revision(
     dest.write_bytes(raw)
 
     # Deselect previous
-    for prev in job.result.revisions:
+    for prev in revisions:
         prev.is_selected = False
+        prev.save()
 
     rev = MaskRevision(
         result_id=job.result.id,
@@ -132,20 +133,21 @@ async def save_revision(
         notes=notes,
         is_selected=True,
     )
-    db.add(rev)
-    db.commit()
-    db.refresh(rev)
+    rev.save()
     return rev
 
 
 @router.patch("/revisions/{revision_id}/select", response_model=MaskRevisionOut)
-def select_revision(revision_id: str, db: Session = Depends(get_db)):
-    rev = db.query(MaskRevision).filter(MaskRevision.id == revision_id).first()
+def select_revision(revision_id: str, db: Any = Depends(get_db)):
+    rev = MaskRevision.objects(id=revision_id).first()
     if not rev:
         raise HTTPException(status_code=404, detail="Revision not found.")
-    for sibling in rev.result.revisions:
+        
+    all_revisions = MaskRevision.objects(result_id=rev.result_id)
+    for sibling in all_revisions:
         sibling.is_selected = False
+        sibling.save()
+        
     rev.is_selected = True
-    db.commit()
-    db.refresh(rev)
+    rev.save()
     return rev

@@ -105,16 +105,21 @@ def train(config: dict, run_dir: Path) -> None:
     if n < 4:
         raise RuntimeError(f"Dataset too small: {n} samples.")
 
+    generator = torch.Generator().manual_seed(config.get("seed", 42))
+    
+    # Fast subset for CPU training demonstration
+    subset_size = min(500, n)
+    indices = torch.randperm(n, generator=generator)[:subset_size].tolist()
+    fast_ds = torch.utils.data.Subset(ds, indices)
+    n = subset_size
+    
     val_frac = config.get("val_fraction", 0.15)
     test_frac = config.get("test_fraction", 0.15)
     n_test = max(1, int(n * test_frac))
     n_val = max(1, int(n * val_frac))
     n_train = n - n_val - n_test
-    if n_train < 1:
-        raise RuntimeError("Not enough samples for train/val/test split.")
 
-    generator = torch.Generator().manual_seed(config.get("seed", 42))
-    train_ds, val_ds, test_ds = random_split(ds, [n_train, n_val, n_test], generator=generator)
+    train_ds, val_ds, test_ds = random_split(fast_ds, [n_train, n_val, n_test], generator=generator)
 
     # Enable augmentation for training split only
     train_ds.dataset.augment = True
@@ -261,6 +266,42 @@ def train(config: dict, run_dir: Path) -> None:
     }
     (run_dir / "run_summary.json").write_text(json.dumps(summary, indent=2))
     log.info("Training complete. Summary saved to %s", run_dir / "run_summary.json")
+
+    # Update MongoDB with the trained U-Net checkpoint
+    import sys
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from backend.app.database import init_db
+    from backend.app.models import ModelVersion
+    import uuid
+
+    init_db()
+    existing = ModelVersion.objects(architecture=arch).first()
+    ckpt = str(best_ckpt).replace('\\', '/')
+    if existing:
+        existing.checkpoint_path = ckpt
+        existing.version_tag = "v2.0-trained"
+        existing.description = f"Trained on TCGA mask dataset. Dice: {best_val_dice:.3f}"
+        existing.save()
+        log.info("Updated existing model in MongoDB")
+    else:
+        new_model = ModelVersion(
+            id=str(uuid.uuid4()),
+            name="U-Net Baseline (Trained)",
+            architecture=arch,
+            version_tag="v2.0-trained",
+            checkpoint_path=ckpt,
+            input_size=config.get("input_size", 256),
+            normalization_mean=config.get("mean", 0.5),
+            normalization_std=config.get("std", 0.5),
+            threshold=threshold,
+            description=f"Trained on TCGA mask dataset. Dice: {best_val_dice:.3f}",
+            dataset_provenance="TCGA LGG Segmentation",
+            is_active=True
+        )
+        new_model.save()
+        log.info("Registered new model in MongoDB")
 
 
 def main():

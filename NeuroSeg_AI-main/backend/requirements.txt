@@ -1,8 +1,10 @@
 fastapi
 uvicorn[standard]
 python-multipart
-sqlalchemy
-alembic
+mongoengine
+pymongo
+passlib[bcrypt]
+python-jose[cryptography]
 pydantic
 pydantic-settings
 python-dotenv

@@ -2,12 +2,10 @@
 NeuroSeg AI — Models, experiments, dashboard and settings routers.
 """
 from __future__ import annotations
-from typing import List
+from typing import List, Any
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
@@ -25,13 +23,13 @@ models_router = APIRouter(prefix="/models", tags=["Models"])
 
 
 @models_router.get("/", response_model=List[ModelVersionOut])
-def list_models(db: Session = Depends(get_db)):
-    return db.query(ModelVersion).filter(ModelVersion.is_active == True).all()
+def list_models(db: Any = Depends(get_db)):
+    return list(ModelVersion.objects(is_active=True))
 
 
 @models_router.get("/{model_id}", response_model=ModelVersionOut)
-def get_model(model_id: str, db: Session = Depends(get_db)):
-    m = db.query(ModelVersion).filter(ModelVersion.id == model_id).first()
+def get_model(model_id: str, db: Any = Depends(get_db)):
+    m = ModelVersion.objects(id=model_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Model not found.")
     return m
@@ -43,13 +41,13 @@ experiments_router = APIRouter(prefix="/experiments", tags=["Experiments"])
 
 
 @experiments_router.get("/", response_model=List[ExperimentRunOut])
-def list_experiments(db: Session = Depends(get_db)):
-    return db.query(ExperimentRun).order_by(ExperimentRun.created_at.desc()).all()
+def list_experiments(db: Any = Depends(get_db)):
+    return list(ExperimentRun.objects().order_by("-created_at"))
 
 
 @experiments_router.get("/{run_id}", response_model=ExperimentRunOut)
-def get_experiment(run_id: str, db: Session = Depends(get_db)):
-    run = db.query(ExperimentRun).filter(ExperimentRun.id == run_id).first()
+def get_experiment(run_id: str, db: Any = Depends(get_db)):
+    run = ExperimentRun.objects(id=run_id).first()
     if not run:
         raise HTTPException(status_code=404, detail="Experiment run not found.")
     return run
@@ -61,33 +59,16 @@ dashboard_router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
 @dashboard_router.get("/", response_model=DashboardStats)
-def get_dashboard(db: Session = Depends(get_db)):
-    total_cases = db.query(func.count(Case.id)).scalar()
-    completed = db.query(func.count(AnalysisJob.id)).filter(
-        AnalysisJob.status == JobStatus.completed
-    ).scalar()
-    running = db.query(func.count(AnalysisJob.id)).filter(
-        AnalysisJob.status == JobStatus.running
-    ).scalar()
-    queued = db.query(func.count(AnalysisJob.id)).filter(
-        AnalysisJob.status == JobStatus.queued
-    ).scalar()
-    failed = db.query(func.count(AnalysisJob.id)).filter(
-        AnalysisJob.status == JobStatus.failed
-    ).scalar()
+def get_dashboard(db: Any = Depends(get_db)):
+    total_cases = Case.objects.count()
+    completed = AnalysisJob.objects(status=JobStatus.completed).count()
+    running = AnalysisJob.objects(status=JobStatus.running).count()
+    queued = AnalysisJob.objects(status=JobStatus.queued).count()
+    failed = AnalysisJob.objects(status=JobStatus.failed).count()
 
-    active_model = (
-        db.query(ModelVersion)
-        .filter(ModelVersion.is_active == True)
-        .order_by(ModelVersion.created_at.desc())
-        .first()
-    )
-    recent_jobs = (
-        db.query(AnalysisJob)
-        .order_by(AnalysisJob.queued_at.desc())
-        .limit(10)
-        .all()
-    )
+    active_model = ModelVersion.objects(is_active=True).order_by("-created_at").first()
+    recent_jobs = list(AnalysisJob.objects().order_by("-queued_at").limit(10))
+
     return DashboardStats(
         total_cases=total_cases or 0,
         completed_analyses=completed or 0,

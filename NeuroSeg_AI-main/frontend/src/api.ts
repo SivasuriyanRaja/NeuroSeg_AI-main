@@ -1,7 +1,11 @@
 // NeuroSeg AI — API client
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api', timeout: 30000 })
+// In production (Vercel), set VITE_API_URL to your backend URL, e.g. https://neuroseg-api.onrender.com
+// In local dev the Vite proxy forwards /api → http://127.0.0.1:8000
+const baseURL = import.meta.env.VITE_API_URL ?? '/api'
+
+const api = axios.create({ baseURL, timeout: 30000 })
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
@@ -211,3 +215,52 @@ export const createRevision = (jobId: string, file: Blob, notes: string, baseRev
 
 export const selectRevision = (revisionId: string) =>
   api.patch<MaskRevision>(`/revisions/${revisionId}/select`)
+
+// ─── Admin APIs ─────────────────────────────────────────────────────────────
+
+export interface AdminUser {
+  id: string
+  email: string
+  username: string
+  prefix: string
+  first_name: string
+  last_name: string
+  display_name: string
+  profession: string
+  role: 'admin' | 'user'
+  created_at: string
+  case_count: number
+}
+
+export interface AdminOverview {
+  total_users: number
+  total_admins: number
+  total_cases: number
+  total_jobs: number
+  active_engine: string
+  storage_mb: number
+  status: string
+}
+
+export const getAdminOverview = () =>
+  api.get<AdminOverview>('/admin/overview')
+
+export const getAdminUsers = () =>
+  api.get<AdminUser[]>('/admin/users')
+
+export const updateAdminUserRole = (userId: string, role: string) =>
+  api.patch<{ id: string; email: string; role: string }>(`/admin/users/${userId}/role`, { role })
+
+export const deleteAdminUser = (userId: string) =>
+  api.delete<{ message: string }>(`/admin/users/${userId}`)
+
+export const createAdminUser = (payload: {
+  email: string
+  password: string
+  username?: string
+  prefix?: string
+  first_name?: string
+  last_name?: string
+  profession?: string
+  role?: string
+}) => api.post('/admin/users', payload)

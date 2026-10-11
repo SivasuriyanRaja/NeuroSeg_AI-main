@@ -17,12 +17,8 @@ REM Start backend API
 echo [3/3] Starting Backend API on port 8000...
 start "NeuroSeg Backend" cmd /k "cd backend && C:\Users\sivas\AppData\Local\Programs\Python\Python313\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
 
-REM Wait 3 seconds for backend to be up before starting worker
+REM Wait 3 seconds for backend to be up before starting frontend
 ping 127.0.0.1 -n 4 > nul
-
-REM Start inference worker
-echo [4/4] Starting Inference Worker...
-start "NeuroSeg Worker" cmd /k "cd backend && C:\Users\sivas\AppData\Local\Programs\Python\Python313\python.exe -m app.worker"
 
 REM Start frontend
 echo [5/5] Starting Frontend...

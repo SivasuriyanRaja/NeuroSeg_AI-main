@@ -9,12 +9,10 @@ import time
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-
-from sqlalchemy.orm import Session
+from typing import Optional, Any
 
 from app.config import settings
-from app.database import SessionLocal, init_db
+from app.database import init_db
 from app.models import AnalysisJob, AnalysisResult, JobStatus, Asset, Case
 from app.inference import run_inference
 
@@ -28,25 +26,19 @@ MAX_RETRIES = settings.worker_max_retries
 POLL_INTERVAL = settings.worker_poll_interval
 
 
-def claim_next_job(db: Session) -> Optional[AnalysisJob]:
-    """Atomically claim a queued job — prevents duplicate claiming."""
-    job = (
-        db.query(AnalysisJob)
-        .filter(AnalysisJob.status == JobStatus.queued)
-        .order_by(AnalysisJob.queued_at)
-        .with_for_update(skip_locked=True)
-        .first()
-    )
+def claim_next_job() -> Optional[AnalysisJob]:
+    """Claim a queued job."""
+    job = AnalysisJob.objects(status=JobStatus.queued).order_by("queued_at").first()
     if job:
         job.status = JobStatus.running
         job.started_at = datetime.utcnow()
-        db.commit()
+        job.save()
     return job
 
 
-def recover_interrupted_jobs(db: Session) -> None:
+def recover_interrupted_jobs() -> None:
     """On worker start, re-queue running jobs that weren't completed."""
-    stale = db.query(AnalysisJob).filter(AnalysisJob.status == JobStatus.running).all()
+    stale = list(AnalysisJob.objects(status=JobStatus.running))
     for job in stale:
         if job.retry_count < MAX_RETRIES:
             log.warning("Recovering interrupted job %s (retry %d)", job.id, job.retry_count)
@@ -57,16 +49,16 @@ def recover_interrupted_jobs(db: Session) -> None:
             log.error("Job %s exceeded max retries, marking failed.", job.id)
             job.status = JobStatus.failed
             job.error_message = f"Failed after {MAX_RETRIES} retries."
-    db.commit()
+        job.save()
 
 
-def process_job(job: AnalysisJob, db: Session) -> None:
+def process_job(job: AnalysisJob) -> None:
     """Run inference for a single job."""
     t_start = time.perf_counter()
 
     # Resolve original image path
-    case: Case = job.case
-    orig_asset: Optional[Asset] = next(
+    case = job.case
+    orig_asset = next(
         (a for a in case.assets if a.asset_type == "original"), None
     )
     if not orig_asset:
@@ -100,13 +92,14 @@ def process_job(job: AnalysisJob, db: Session) -> None:
         preprocessing_meta=result_data.get("preprocessing_meta", {}),
         predicted_class=result_data.get("predicted_class"),
         predicted_confidence=result_data.get("predicted_confidence"),
+        openai_analysis=result_data.get("openai_analysis"),
     )
-    db.add(result)
+    result.save()
 
     job.status = JobStatus.completed
     job.completed_at = datetime.utcnow()
     job.processing_ms = elapsed_ms
-    db.commit()
+    job.save()
     log.info("Job %s completed in %d ms.", job.id, elapsed_ms)
 
 
@@ -115,32 +108,29 @@ def run_worker() -> None:
     init_db()
     log.info("NeuroSeg AI worker starting.")
 
-    with SessionLocal() as db:
-        recover_interrupted_jobs(db)
+    recover_interrupted_jobs()
 
     while True:
-        with SessionLocal() as db:
-            job = claim_next_job(db)
-            if job:
-                log.info("Processing job %s (case=%s, model=%s).",
-                         job.id, job.case_id, job.model_version_id)
-                try:
-                    process_job(job, db)
-                except Exception:
-                    err = traceback.format_exc()
-                    log.error("Job %s failed:\n%s", job.id, err)
-                    with SessionLocal() as db2:
-                        j = db2.query(AnalysisJob).filter(AnalysisJob.id == job.id).first()
-                        if j:
-                            j.retry_count += 1
-                            if j.retry_count >= MAX_RETRIES:
-                                j.status = JobStatus.failed
-                                j.error_message = err[-2000:]
-                            else:
-                                j.status = JobStatus.queued
-                                j.error_message = f"Retrying ({j.retry_count}/{MAX_RETRIES})."
-                            j.completed_at = datetime.utcnow()
-                            db2.commit()
+        job = claim_next_job()
+        if job:
+            log.info("Processing job %s (case=%s, model=%s).",
+                     job.id, job.case_id, job.model_version_id)
+            try:
+                process_job(job)
+            except Exception:
+                err = traceback.format_exc()
+                log.error("Job %s failed:\n%s", job.id, err)
+                j = AnalysisJob.objects(id=job.id).first()
+                if j:
+                    j.retry_count += 1
+                    if j.retry_count >= MAX_RETRIES:
+                        j.status = JobStatus.failed
+                        j.error_message = err[-2000:]
+                    else:
+                        j.status = JobStatus.queued
+                        j.error_message = f"Retrying ({j.retry_count}/{MAX_RETRIES})."
+                    j.completed_at = datetime.utcnow()
+                    j.save()
         time.sleep(POLL_INTERVAL)
 
 

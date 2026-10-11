@@ -30,3 +30,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Large binary assets — host on CDN (Cloudinary/S3), do NOT track in git
+*.mp4
+*.mov
+*.avi

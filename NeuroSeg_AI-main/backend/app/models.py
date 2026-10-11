@@ -1,38 +1,27 @@
 """
-NeuroSeg AI — SQLAlchemy ORM Models
+NeuroSeg AI — MongoEngine Models
 """
 from __future__ import annotations
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, DateTime,
-    ForeignKey, Text, JSON, Enum as SAEnum
-)
-from sqlalchemy.orm import DeclarativeBase, relationship
 import enum
-
+from mongoengine import (
+    Document, StringField, IntField, FloatField, BooleanField, DateTimeField,
+    ReferenceField, DictField, EnumField, ListField
+)
 
 def _now() -> datetime:
     return datetime.utcnow()
 
-
 def _uid() -> str:
     return str(uuid.uuid4())
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-# ─── Enumerations ────────────────────────────────────────────────────────────
 
 class JobStatus(str, enum.Enum):
     queued = "queued"
     running = "running"
     completed = "completed"
     failed = "failed"
-
 
 class ReportFormat(str, enum.Enum):
     pdf = "pdf"
@@ -42,188 +31,157 @@ class ReportFormat(str, enum.Enum):
     png_mask = "png_mask"
     zip = "zip"
 
+class User(Document):
+    meta = {'strict': False}
+    id = StringField(primary_key=True, default=_uid)
+    email = StringField(required=True, unique=True)
+    hashed_password = StringField(required=True)
+    role = StringField(default="user")  # 'user' or 'admin'
+    username = StringField(default="")
+    prefix = StringField(default="")
+    first_name = StringField(default="")
+    last_name = StringField(default="")
+    profession = StringField(default="researcher")  # 'doctor', 'researcher', 'student'
+    created_at = DateTimeField(default=_now)
 
-# ─── Tables ──────────────────────────────────────────────────────────────────
+class ModelVersion(Document):
+    id = StringField(primary_key=True, default=_uid)
+    name = StringField(required=True)
+    architecture = StringField(required=True)
+    version_tag = StringField(required=True)
+    checkpoint_path = StringField()
+    input_size = IntField(default=256)
+    normalization_mean = FloatField(default=0.5)
+    normalization_std = FloatField(default=0.5)
+    threshold = FloatField(default=0.5)
+    parameter_count = IntField(null=True)
+    weight_file_size_bytes = IntField(null=True)
+    description = StringField(default="")
+    dataset_provenance = StringField(default="")
+    is_active = BooleanField(default=True)
+    created_at = DateTimeField(default=_now)
 
-class User(Base):
-    __tablename__ = "users"
-    
-    id: str = Column(String, primary_key=True, default=_uid)
-    email: str = Column(String, unique=True, index=True, nullable=False)
-    hashed_password: str = Column(String, nullable=False)
-    created_at: datetime = Column(DateTime, default=_now)
+class Case(Document):
+    id = StringField(primary_key=True, default=_uid)
+    label = StringField(default="")
+    notes = StringField(default="")
+    created_at = DateTimeField(default=_now)
+    updated_at = DateTimeField(default=_now)
+    user_id = StringField()
 
-    cases = relationship("Case", back_populates="user")
+    @property
+    def user(self):
+        return User.objects(id=self.user_id).first()
+        
+    @property
+    def assets(self):
+        return Asset.objects(case_id=self.id)
+        
+    @property
+    def jobs(self):
+        return AnalysisJob.objects(case_id=self.id)
 
+class Asset(Document):
+    id = StringField(primary_key=True, default=_uid)
+    case_id = StringField(required=True)
+    asset_type = StringField(required=True)
+    filename = StringField(required=True)
+    original_filename = StringField(default="")
+    mime_type = StringField(default="image/png")
+    file_size_bytes = IntField(default=0)
+    width = IntField(null=True)
+    height = IntField(null=True)
+    created_at = DateTimeField(default=_now)
 
-class ModelVersion(Base):
-    """Registered segmentation model (checkpoint)."""
-    __tablename__ = "model_versions"
+    @property
+    def case(self):
+        return Case.objects(id=self.case_id).first()
 
-    id: str = Column(String, primary_key=True, default=_uid)
-    name: str = Column(String, nullable=False)
-    architecture: str = Column(String, nullable=False)  # e.g. "unet_baseline"
-    version_tag: str = Column(String, nullable=False)
-    checkpoint_path: str = Column(String)
-    input_size: int = Column(Integer, default=256)
-    normalization_mean: float = Column(Float, default=0.5)
-    normalization_std: float = Column(Float, default=0.5)
-    threshold: float = Column(Float, default=0.5)
-    parameter_count: Optional[int] = Column(Integer)
-    weight_file_size_bytes: Optional[int] = Column(Integer)
-    description: str = Column(Text, default="")
-    dataset_provenance: str = Column(Text, default="")
-    is_active: bool = Column(Boolean, default=True)
-    created_at: datetime = Column(DateTime, default=_now)
+class AnalysisResult(Document):
+    id = StringField(primary_key=True, default=_uid)
+    job_id = StringField(required=True, unique=True)
+    foreground_pixels = IntField(default=0)
+    total_pixels = IntField(default=0)
+    foreground_fraction = FloatField(default=0.0)
+    bounding_box_x = IntField(null=True)
+    bounding_box_y = IntField(null=True)
+    bounding_box_w = IntField(null=True)
+    bounding_box_h = IntField(null=True)
+    connected_component_count = IntField(default=0)
+    predicted_class = StringField(null=True)
+    predicted_confidence = FloatField(null=True)
+    prob_map_path = StringField(null=True)
+    mask_path = StringField(null=True)
+    overlay_path = StringField(null=True)
+    thumbnail_path = StringField(null=True)
+    preprocessing_meta = DictField(default=dict)
+    openai_analysis = StringField(null=True)
+    created_at = DateTimeField(default=_now)
 
-    jobs = relationship("AnalysisJob", back_populates="model_version")
-    experiment_runs = relationship("ExperimentRun", back_populates="model_version")
+class AnalysisJob(Document):
+    id = StringField(primary_key=True, default=_uid)
+    case_id = StringField(required=True)
+    model_version_id = StringField(required=True)
+    status = EnumField(JobStatus, default=JobStatus.queued)
+    threshold = FloatField(default=0.5)
+    retry_count = IntField(default=0)
+    error_message = StringField(null=True)
+    queued_at = DateTimeField(default=_now)
+    started_at = DateTimeField(null=True)
+    completed_at = DateTimeField(null=True)
+    processing_ms = IntField(null=True)
 
+    @property
+    def case(self):
+        return Case.objects(id=self.case_id).first()
+        
+    @property
+    def model_version(self):
+        return ModelVersion.objects(id=self.model_version_id).first()
+        
+    @property
+    def result(self):
+        return AnalysisResult.objects(job_id=self.id).first()
 
-class Case(Base):
-    """One uploaded patient MRI session."""
-    __tablename__ = "cases"
+class MaskRevision(Document):
+    id = StringField(primary_key=True, default=_uid)
+    result_id = StringField(required=True)
+    revision_number = IntField(required=True)
+    mask_path = StringField(required=True)
+    notes = StringField(default="")
+    is_selected = BooleanField(default=False)
+    created_at = DateTimeField(default=_now)
 
-    id: str = Column(String, primary_key=True, default=_uid)
-    label: str = Column(String, default="")
-    notes: str = Column(Text, default="")
-    created_at: datetime = Column(DateTime, default=_now)
-    updated_at: datetime = Column(DateTime, default=_now, onupdate=_now)
-    user_id: Optional[str] = Column(String, ForeignKey("users.id"))
+class Report(Document):
+    id = StringField(primary_key=True, default=_uid)
+    result_id = StringField(required=True)
+    format = EnumField(ReportFormat, required=True)
+    file_path = StringField(required=True)
+    file_size_bytes = IntField(default=0)
+    created_at = DateTimeField(default=_now)
 
-    user = relationship("User", back_populates="cases")
-    assets = relationship("Asset", back_populates="case", cascade="all, delete-orphan")
-    jobs = relationship("AnalysisJob", back_populates="case", cascade="all, delete-orphan")
+class ExperimentRun(Document):
+    id = StringField(primary_key=True, default=_uid)
+    model_version_id = StringField(required=True)
+    run_name = StringField(required=True)
+    dataset_name = StringField(default="")
+    split_identity = StringField(default="")
+    epochs_trained = IntField(default=0)
+    best_epoch = IntField(default=0)
+    best_val_dice = FloatField(default=0.0)
+    test_dice = FloatField(null=True)
+    test_iou = FloatField(null=True)
+    test_precision = FloatField(null=True)
+    test_recall = FloatField(null=True)
+    parameter_count = IntField(null=True)
+    peak_memory_mb = FloatField(null=True)
+    median_latency_ms = FloatField(null=True)
+    p95_latency_ms = FloatField(null=True)
+    hardware_info = StringField(default="")
+    training_curves = DictField(default=dict)
+    config_snapshot = DictField(default=dict)
+    created_at = DateTimeField(default=_now)
 
-
-class Asset(Base):
-    """File stored on disk linked to a Case."""
-    __tablename__ = "assets"
-
-    id: str = Column(String, primary_key=True, default=_uid)
-    case_id: str = Column(String, ForeignKey("cases.id"), nullable=False)
-    asset_type: str = Column(String, nullable=False)  # original / thumbnail / overlay / mask / prob_map / report
-    filename: str = Column(String, nullable=False)    # server-generated safe name
-    original_filename: str = Column(String, default="")
-    mime_type: str = Column(String, default="image/png")
-    file_size_bytes: int = Column(Integer, default=0)
-    width: Optional[int] = Column(Integer)
-    height: Optional[int] = Column(Integer)
-    created_at: datetime = Column(DateTime, default=_now)
-
-    case = relationship("Case", back_populates="assets")
-
-
-class AnalysisJob(Base):
-    """Inference job record."""
-    __tablename__ = "analysis_jobs"
-
-    id: str = Column(String, primary_key=True, default=_uid)
-    case_id: str = Column(String, ForeignKey("cases.id"), nullable=False)
-    model_version_id: str = Column(String, ForeignKey("model_versions.id"), nullable=False)
-    status: JobStatus = Column(SAEnum(JobStatus), default=JobStatus.queued, nullable=False)
-    threshold: float = Column(Float, default=0.5)
-    retry_count: int = Column(Integer, default=0)
-    error_message: Optional[str] = Column(Text)
-    queued_at: datetime = Column(DateTime, default=_now)
-    started_at: Optional[datetime] = Column(DateTime)
-    completed_at: Optional[datetime] = Column(DateTime)
-    processing_ms: Optional[int] = Column(Integer)
-
-    case = relationship("Case", back_populates="jobs")
-    model_version = relationship("ModelVersion", back_populates="jobs")
-    result = relationship("AnalysisResult", back_populates="job", uselist=False, cascade="all, delete-orphan")
-
-
-class AnalysisResult(Base):
-    """Metrics and artifact paths for a completed job."""
-    __tablename__ = "analysis_results"
-
-    id: str = Column(String, primary_key=True, default=_uid)
-    job_id: str = Column(String, ForeignKey("analysis_jobs.id"), nullable=False, unique=True)
-
-    # Mask measurements
-    foreground_pixels: int = Column(Integer, default=0)
-    total_pixels: int = Column(Integer, default=0)
-    foreground_fraction: float = Column(Float, default=0.0)
-    bounding_box_x: Optional[int] = Column(Integer)
-    bounding_box_y: Optional[int] = Column(Integer)
-    bounding_box_w: Optional[int] = Column(Integer)
-    bounding_box_h: Optional[int] = Column(Integer)
-    connected_component_count: int = Column(Integer, default=0)
-
-    # Classification results
-    predicted_class: Optional[str] = Column(String)
-    predicted_confidence: Optional[float] = Column(Float)
-
-    # File paths (relative to results_dir)
-    prob_map_path: Optional[str] = Column(String)
-    mask_path: Optional[str] = Column(String)
-    overlay_path: Optional[str] = Column(String)
-    thumbnail_path: Optional[str] = Column(String)
-
-    # Preprocessing provenance
-    preprocessing_meta: dict = Column(JSON, default=dict)
-
-    created_at: datetime = Column(DateTime, default=_now)
-
-    job = relationship("AnalysisJob", back_populates="result")
-    revisions = relationship("MaskRevision", back_populates="result", cascade="all, delete-orphan")
-    reports = relationship("Report", back_populates="result", cascade="all, delete-orphan")
-
-
-class MaskRevision(Base):
-    """User-edited mask saved as a separate revision."""
-    __tablename__ = "mask_revisions"
-
-    id: str = Column(String, primary_key=True, default=_uid)
-    result_id: str = Column(String, ForeignKey("analysis_results.id"), nullable=False)
-    revision_number: int = Column(Integer, nullable=False)
-    mask_path: str = Column(String, nullable=False)
-    notes: str = Column(Text, default="")
-    is_selected: bool = Column(Boolean, default=False)
-    created_at: datetime = Column(DateTime, default=_now)
-
-    result = relationship("AnalysisResult", back_populates="revisions")
-
-
-class Report(Base):
-    """Generated downloadable report."""
-    __tablename__ = "reports"
-
-    id: str = Column(String, primary_key=True, default=_uid)
-    result_id: str = Column(String, ForeignKey("analysis_results.id"), nullable=False)
-    format: ReportFormat = Column(SAEnum(ReportFormat), nullable=False)
-    file_path: str = Column(String, nullable=False)
-    file_size_bytes: int = Column(Integer, default=0)
-    created_at: datetime = Column(DateTime, default=_now)
-
-    result = relationship("AnalysisResult", back_populates="reports")
-
-
-class ExperimentRun(Base):
-    """ML training experiment record."""
-    __tablename__ = "experiment_runs"
-
-    id: str = Column(String, primary_key=True, default=_uid)
-    model_version_id: str = Column(String, ForeignKey("model_versions.id"), nullable=False)
-    run_name: str = Column(String, nullable=False)
-    dataset_name: str = Column(String, default="")
-    split_identity: str = Column(String, default="")   # hash or manifest path
-    epochs_trained: int = Column(Integer, default=0)
-    best_epoch: int = Column(Integer, default=0)
-    best_val_dice: float = Column(Float, default=0.0)
-    test_dice: Optional[float] = Column(Float)
-    test_iou: Optional[float] = Column(Float)
-    test_precision: Optional[float] = Column(Float)
-    test_recall: Optional[float] = Column(Float)
-    parameter_count: Optional[int] = Column(Integer)
-    peak_memory_mb: Optional[float] = Column(Float)
-    median_latency_ms: Optional[float] = Column(Float)
-    p95_latency_ms: Optional[float] = Column(Float)
-    hardware_info: str = Column(Text, default="")
-    training_curves: dict = Column(JSON, default=dict)   # {epoch: {train_loss, val_loss, val_dice}}
-    config_snapshot: dict = Column(JSON, default=dict)
-    created_at: datetime = Column(DateTime, default=_now)
-
-    model_version = relationship("ModelVersion", back_populates="experiment_runs")
+class BaseDummy:
+    metadata = type("Metadata", (), {"create_all": lambda bind: None})()
+Base = BaseDummy()
