@@ -8,14 +8,20 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+_IS_VERCEL = bool(os.environ.get("VERCEL"))
+_DEFAULT_BASE = Path("/tmp/neuroseg_data") if _IS_VERCEL else Path(__file__).resolve().parent.parent / "data"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # Paths
-    data_dir: Path = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parent.parent / "data"))
-    upload_dir: Path = Path(os.environ.get("UPLOAD_DIR", Path(__file__).resolve().parent.parent / "data" / "uploads"))
-    results_dir: Path = Path(os.environ.get("RESULTS_DIR", Path(__file__).resolve().parent.parent / "data" / "results"))
-    model_dir: Path = Path(os.environ.get("MODEL_DIR", Path(__file__).resolve().parent.parent / "data" / "models"))
+    is_vercel: bool = _IS_VERCEL
+
+    data_dir: Path = Path(os.environ.get("DATA_DIR", _DEFAULT_BASE))
+    upload_dir: Path = Path(os.environ.get("UPLOAD_DIR", _DEFAULT_BASE / "uploads"))
+    results_dir: Path = Path(os.environ.get("RESULTS_DIR", _DEFAULT_BASE / "results"))
+    model_dir: Path = Path(os.environ.get("MODEL_DIR", _DEFAULT_BASE / "models"))
 
     # Database
     database_url: str = "sqlite:///./neuroseg.db"
@@ -34,8 +40,12 @@ class Settings(BaseSettings):
 
     def ensure_dirs(self) -> None:
         for d in (self.data_dir, self.upload_dir, self.results_dir, self.model_dir):
-            d.mkdir(parents=True, exist_ok=True)
+            try:
+                d.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                pass
 
 
 settings = Settings()
 settings.ensure_dirs()
+
