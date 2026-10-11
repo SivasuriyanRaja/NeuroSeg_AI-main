@@ -5,7 +5,6 @@ mongoengine
 pymongo
 mongomock
 openai
-passlib[bcrypt]
 bcrypt
 python-jose[cryptography]
 pydantic
