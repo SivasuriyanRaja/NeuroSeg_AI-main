@@ -55,6 +55,8 @@ runs/
 *.hdf5
 *.nii
 *.nii.gz
+*.zip
+*.tar*
 *.mp4
 *.mkv
 *.avi
