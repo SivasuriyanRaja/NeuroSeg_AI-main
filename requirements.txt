@@ -3,7 +3,10 @@ uvicorn[standard]
 python-multipart
 mongoengine
 pymongo
+mongomock
+openai
 passlib[bcrypt]
+bcrypt
 python-jose[cryptography]
 pydantic
 pydantic-settings
