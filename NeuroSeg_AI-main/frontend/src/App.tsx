@@ -192,16 +192,69 @@ function QuickStat({icon:Icon,label,value,note,color,trend}:{icon:typeof Brain;l
   const rgb:Record<string,string>={'#0d9488':'13,148,136','#22c55e':'34,197,94','#f59e0b':'245,158,11','#ef4444':'239,68,68'};
   const r=rgb[color]||'13,148,136';
   return (
-    <div style={{padding:'18px 20px',background:`linear-gradient(135deg,rgba(${r},0.07) 0%,rgba(${r},0.01) 100%)`,border:`1px solid rgba(${r},0.18)`,borderRadius:14,position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',top:-12,right:-12,width:60,height:60,borderRadius:'50%',background:`rgba(${r},0.08)`}}/>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-        <span style={{fontSize:10,fontWeight:700,letterSpacing:1,color:'#64748b',textTransform:'uppercase'}}>{label}</span>
-        <span style={{width:30,height:30,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',background:`rgba(${r},0.15)`,color}}><Icon size={13}/></span>
+    <div style={{
+      padding: '20px 22px',
+      background: 'linear-gradient(160deg, rgba(17, 26, 36, 0.95) 0%, rgba(10, 16, 23, 0.95) 100%)',
+      border: '1px solid rgba(141, 164, 183, 0.12)',
+      borderRadius: 14,
+      position: 'relative',
+      overflow: 'hidden',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.22)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      minHeight: 120,
+      transition: 'transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+    }}
+    onMouseEnter={e => {
+      e.currentTarget.style.transform = 'translateY(-2px)';
+      e.currentTarget.style.borderColor = `rgba(${r}, 0.35)`;
+      e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.32), 0 0 16px rgba(${r}, 0.08)`;
+    }}
+    onMouseLeave={e => {
+      e.currentTarget.style.transform = 'translateY(0)';
+      e.currentTarget.style.borderColor = 'rgba(141, 164, 183, 0.12)';
+      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.22)';
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        background: `linear-gradient(90deg, transparent, rgba(${r}, 0.6), transparent)`,
+      }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.9, color: '#768896', textTransform: 'uppercase' }}>
+          {label}
+        </span>
+        <span style={{
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: `rgba(${r}, 0.12)`,
+          border: `1px solid rgba(${r}, 0.22)`,
+          color,
+          flexShrink: 0
+        }}>
+          <Icon size={15}/>
+        </span>
       </div>
-      <div style={{fontSize:34,fontWeight:900,color:'#f1f5f9',letterSpacing:-2,marginTop:10,lineHeight:1}}>{value}</div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6}}>
-        <span style={{fontSize:11,color:'#475569'}}>{note}</span>
-        {trend&&<span style={{fontSize:10,fontWeight:700,color:trend.startsWith('+')?'#22c55e':'#f87171'}}>{trend}</span>}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 10 }}>
+        <span style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', letterSpacing: -1, lineHeight: 1 }}>
+          {value}
+        </span>
+        {trend && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: trend.startsWith('+') ? '#22c55e' : '#f87171' }}>
+            {trend}
+          </span>
+        )}
+      </div>
+      <div style={{ marginTop: 8, fontSize: 11.5, color: '#526677' }}>
+        {note}
       </div>
     </div>
   );
@@ -216,7 +269,7 @@ function Overview() {
   useEffect(()=>{ getDashboard().then(r=>setStats(r.data)).catch(console.error); },[]);
   const totalJobs=(stats?.completed_analyses||0)+(stats?.running_jobs||0)+(stats?.failed_jobs||0);
   const successRate=totalJobs>0?Math.round((stats?.completed_analyses||0)/totalJobs*100):0;
-  const activity=stats?.recent_jobs.slice(0,6).map(j=>({title:`Analysis \u00b7 ${j.status}`,caseId:j.case_id,time:fmtDate(j.queued_at),status:j.status}))||[];
+  const activity=stats?.recent_jobs.slice(0,6).map(j=>({title:`Analysis · ${j.status}`,caseId:j.case_id,time:fmtDate(j.queued_at),status:j.status}))||[];
   const chartData=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return{day:d.toLocaleDateString('en',{weekday:'short'}),runs:stats?.recent_jobs.filter(j=>new Date(j.queued_at).toDateString()===d.toDateString()).length||0};});
   return (
     <div className="page">
@@ -231,14 +284,14 @@ function Overview() {
           <Link href="/analyze" className="btn btn-primary" style={{gap:6}}><Zap size={13}/> New Analysis</Link>
         </div>
       </div>
-      <div className="stat-grid" style={{marginBottom:24,gap:14}}>
+      <div className="stat-grid" style={{marginBottom:24,gap:16}}>
         <QuickStat icon={FolderOpen} label="Total Cases" value={String(stats?.total_cases||0)} note="Uploaded scans" color="#0d9488"/>
         <QuickStat icon={CheckCircle2} label="Completed" value={String(stats?.completed_analyses||0)} note="Analyses done" color="#22c55e"/>
         <QuickStat icon={Activity} label="Running" value={String(stats?.running_jobs||0)} note="In progress" color="#f59e0b"/>
         <QuickStat icon={XCircle} label="Failed" value={String(stats?.failed_jobs||0)} note="Needs review" color="#ef4444"/>
       </div>
-      <div className="overview-grid" style={{gap:18,alignItems:'start'}}>
-        <div style={{display:'flex',flexDirection:'column',gap:18}}>
+      <div className="overview-grid" style={{gap:20,alignItems:'start'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:20}}>
           <section className="card card-pad">
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
               <div><div className="section-title">Analysis Activity</div><div className="section-sub">Jobs over last 7 days</div></div>
@@ -246,15 +299,20 @@ function Overview() {
                 <TrendingUp size={12}/> {successRate}% success
               </div>
             </div>
-            <div style={{height:155}}>
+            <div style={{height:185}}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{top:5,right:5,left:-25,bottom:0}}>
-                  <defs><linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.3}/><stop offset="95%" stopColor="#0d9488" stopOpacity={0}/></linearGradient></defs>
-                  <CartesianGrid stroke="rgba(150,170,185,.06)" vertical={false}/>
-                  <XAxis dataKey="day" tick={{fill:'#475569',fontSize:10}} axisLine={false} tickLine={false}/>
-                  <YAxis tick={{fill:'#475569',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
-                  <Tooltip contentStyle={{background:'#0f1e2a',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,fontSize:11,color:'#cbd5e1'}}/>
-                  <Area type="monotone" dataKey="runs" stroke="#0d9488" strokeWidth={2.5} fill="url(#rg2)" dot={{fill:'#0d9488',r:3}} name="Jobs"/>
+                <AreaChart data={chartData} margin={{top:15,right:15,left:-20,bottom:5}}>
+                  <defs>
+                    <linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0d9488" stopOpacity={0.35}/>
+                      <stop offset="100%" stopColor="#0d9488" stopOpacity={0.0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="rgba(150,170,185,0.06)" strokeDasharray="3 3" vertical={false}/>
+                  <XAxis dataKey="day" tick={{fill:'#64748b',fontSize:10.5}} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{fill:'#64748b',fontSize:10.5}} axisLine={false} tickLine={false} allowDecimals={false} domain={[0, (dataMax: number) => Math.max(dataMax + 2, 4)]}/>
+                  <Tooltip contentStyle={{background:'#0b131d',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,fontSize:11.5,color:'#cbd5e1',boxShadow:'0 10px 25px rgba(0,0,0,0.5)'}}/>
+                  <Area type="monotone" dataKey="runs" stroke="#14b8a6" strokeWidth={2.5} fill="url(#rg2)" dot={{fill:'#14b8a6',r:3.5,strokeWidth:0}} activeDot={{r:5,fill:'#2dd4bf'}} name="Jobs"/>
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -286,7 +344,7 @@ function Overview() {
             ))}
           </section>
         </div>
-        <div style={{display:'flex',flexDirection:'column',gap:18}}>
+        <div style={{display:'flex',flexDirection:'column',gap:20}}>
           <section className="card card-pad">
             <div className="section-title" style={{marginBottom:14}}>Quick Actions</div>
             {[
