@@ -443,10 +443,9 @@ export default function CaseDetail() {
   const imgSrc = getImageSrc()
 
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className="fade-in case-detail-container">
       {/* Top bar */}
-      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--navy-700)',
-        display: 'flex', alignItems: 'center', gap: 12, background: 'var(--navy-900)' }}>
+      <div className="case-detail-topbar">
         <button className="btn btn-ghost btn-sm" onClick={() => nav('/cases')}>
           <ArrowLeft size={14} /> Cases
         </button>
@@ -476,10 +475,9 @@ export default function CaseDetail() {
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div className="case-detail-body">
         {/* ─ Left: viewer ─ */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
-          background: '#000', position: 'relative', minWidth: 0 }}>
+        <div className="case-detail-viewer-pane">
           {/* View mode tabs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
             background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid var(--navy-800)' }}>
@@ -583,9 +581,7 @@ export default function CaseDetail() {
         </div>
 
         {/* ─ Right: tabbed inspector / analytics ─ */}
-        <div style={{ width: 340, borderLeft: '1px solid var(--navy-700)',
-          background: 'var(--navy-900)', overflowY: 'auto', display: 'flex',
-          flexDirection: 'column' } as any}>
+        <div className="case-detail-sidebar">
 
           {/* Tab header */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--navy-700)', flexShrink: 0 }}>

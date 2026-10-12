@@ -117,7 +117,7 @@ export function RegisterPage() {
       <form onSubmit={handleSubmit} onChange={() => error && setError('')}>
 
         {/* Title/Prefix + Username row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10, marginBottom: 12 }}>
+        <div className="register-prefix-row">
           <div className="auth-field" style={{ marginBottom: 0 }}>
             <label className="auth-label" htmlFor="register-prefix">Prefix / Title</label>
             <div className="auth-input-wrap">
@@ -162,7 +162,7 @@ export function RegisterPage() {
         </div>
 
         {/* Name row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <div className="register-names-row">
           <div className="auth-field" style={{ marginBottom: 0 }}>
             <label className="auth-label" htmlFor="register-firstname">First Name (Optional)</label>
             <div className="auth-input-wrap">
@@ -194,7 +194,7 @@ export function RegisterPage() {
         {/* Profession selector */}
         <div className="auth-field">
           <label className="auth-label">Select Role / Profession</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <div className="register-profession-grid">
             {PROFESSION_OPTIONS.map(opt => {
               const active = profession === opt.value;
               const Icon = opt.Icon;
@@ -202,6 +202,7 @@ export function RegisterPage() {
                 <button
                   key={opt.value}
                   type="button"
+                  className="register-profession-btn"
                   onClick={() => selectProfession(opt.value)}
                   style={{
                     padding: '12px 8px',
@@ -286,7 +287,23 @@ export function RegisterPage() {
           )}
         </button>
       </form>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .register-prefix-row { display: grid; grid-template-columns: 120px 1fr; gap: 10px; margin-bottom: 12px; }
+        .register-names-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .register-profession-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+        @media (max-width: 460px) {
+          .register-prefix-row { grid-template-columns: 100px 1fr; gap: 8px; }
+          .register-profession-btn { padding: 10px 4px !important; }
+          .register-profession-btn span { font-size: 11px !important; }
+        }
+
+        @media (max-width: 380px) {
+          .register-prefix-row { grid-template-columns: 1fr; gap: 10px; }
+          .register-names-row { grid-template-columns: 1fr; gap: 10px; }
+        }
+      `}</style>
     </AuthScaffold>
   );
 }

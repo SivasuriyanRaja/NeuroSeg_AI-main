@@ -65,7 +65,7 @@ function getUserTitleName(user: any, fallback: string = 'User'): string {
   return name;
 }
 
-function Sidebar() {
+function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const [path] = useLocation();
   const { user, logout } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -79,69 +79,111 @@ function Sidebar() {
     {href:'/settings',label:'Settings',icon:Settings2},
     ...(isAdmin ? [{href:'/settings/admin',label:'Admin Panel',icon:ShieldCheck}] : []),
   ];
+  const handleNavClick = () => { if (onClose) onClose(); };
   return (
-    <aside className="sidebar">
-      <Link href="/dashboard" className="brand">
-        <span className="brand-mark" style={{background:'rgba(13,148,136,0.15)',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',padding:4}}>
-          <img src="/neulogo.png" alt="NeuroSeg Logo" style={{width:24,height:24,objectFit:'contain',borderRadius:4}}/>
-        </span>
-        <span><span className="brand-name">NeuroSeg</span><span className="brand-sub">AI workspace</span></span>
-      </Link>
-      <div className="nav-caption" style={{marginTop:24}}>Navigation</div>
-      <nav className="nav-list">{nav.map(n=>(
-        <Link key={n.href} href={n.href}
-          className={cls('nav-link',(path===n.href||(n.href==='/cases'&&path.startsWith('/cases/')))?'active':'')}
-          data-testid={`link-nav-${n.label.toLowerCase().replace(' ','-')}`}>
-          <n.icon size={16}/><span>{n.label}</span>
-        </Link>
-      ))}</nav>
-      <div className="side-spacer"/>
-      <Link href="/analyze" style={{display:'flex',alignItems:'center',gap:10,margin:'0 10px 14px',padding:'10px 14px',background:'linear-gradient(135deg,rgba(13,148,136,0.18),rgba(6,95,70,0.12))',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,color:'#5eead4',textDecoration:'none',fontSize:12,fontWeight:600}}>
-        <Zap size={14} style={{flexShrink:0}}/><span>New Analysis</span>
-        <ChevronRight size={12} style={{marginLeft:'auto'}}/>
-      </Link>
-      <div className="sidebar-foot" style={{borderTop:'1px solid rgba(141,164,183,0.1)',paddingTop:12}}>
-        <div style={{margin:'0 8px 10px',padding:'10px 12px',background:'rgba(255,255,255,0.03)',borderRadius:10,border:'1px solid rgba(141,164,183,0.08)'}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-            <div style={{width:34,height:34,borderRadius:10,background:isAdmin?'linear-gradient(135deg,#7c3aed,#4f46e5)':'linear-gradient(135deg,#0f766e,#0d9488)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'#fff',flexShrink:0}}>
-              {initial}
-            </div>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:600,color:'#cbd5e1',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:110}} title={displayName}>{displayName}</div>
-              <div style={{fontSize:10,color:isAdmin?'#a78bfa':'#64ceb1',marginTop:2,fontWeight:500}}>{isAdmin?'\u26a1 Administrator':'\u25cf Standard User'}</div>
-            </div>
-          </div>
-          <button onClick={logout} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'8px 12px',borderRadius:8,cursor:'pointer',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',color:'#f87171',fontSize:12,fontWeight:600,transition:'all .2s'}}
-            onMouseEnter={e=>(e.currentTarget.style.background='rgba(239,68,68,0.18)')}
-            onMouseLeave={e=>(e.currentTarget.style.background='rgba(239,68,68,0.08)')}>
-            <LogOut size={13}/> Sign Out
-          </button>
+    <>
+      {/* Overlay for mobile drawer */}
+      {open && (
+        <div
+          className="sidebar-overlay"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside className={cls('sidebar', open ? 'sidebar-open' : '')}>
+        <div className="sidebar-header">
+          <Link href="/dashboard" className="brand" onClick={handleNavClick}>
+            <span className="brand-mark" style={{background:'rgba(13,148,136,0.15)',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',padding:4}}>
+              <img src="/neulogo.png" alt="NeuroSeg Logo" style={{width:24,height:24,objectFit:'contain',borderRadius:4}}/>
+            </span>
+            <span><span className="brand-name">NeuroSeg</span><span className="brand-sub">AI workspace</span></span>
+          </Link>
+          {onClose && (
+            <button
+              className="sidebar-close-btn"
+              onClick={onClose}
+              aria-label="Close menu"
+            >
+              <X size={18}/>
+            </button>
+          )}
         </div>
-        <div className="workspace-meta" style={{padding:'4px 12px 6px',fontSize:10,opacity:.5}}>NeuroSeg AI · v3.0</div>
-      </div>
-    </aside>
+        <div className="nav-caption" style={{marginTop:24}}>Navigation</div>
+        <nav className="nav-list">{nav.map(n=>(
+          <Link key={n.href} href={n.href}
+            className={cls('nav-link',(path===n.href||(n.href==='/cases'&&path.startsWith('/cases/')))?'active':'')}
+            data-testid={`link-nav-${n.label.toLowerCase().replace(' ','-')}`}
+            onClick={handleNavClick}>
+            <n.icon size={16}/><span>{n.label}</span>
+          </Link>
+        ))}</nav>
+        <div className="side-spacer"/>
+        <Link href="/analyze" onClick={handleNavClick} style={{display:'flex',alignItems:'center',gap:10,margin:'0 10px 14px',padding:'10px 14px',background:'linear-gradient(135deg,rgba(13,148,136,0.18),rgba(6,95,70,0.12))',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,color:'#5eead4',textDecoration:'none',fontSize:12,fontWeight:600}}>
+          <Zap size={14} style={{flexShrink:0}}/><span>New Analysis</span>
+          <ChevronRight size={12} style={{marginLeft:'auto'}}/>
+        </Link>
+        <div className="sidebar-foot" style={{borderTop:'1px solid rgba(141,164,183,0.1)',paddingTop:12}}>
+          <div style={{margin:'0 8px 10px',padding:'10px 12px',background:'rgba(255,255,255,0.03)',borderRadius:10,border:'1px solid rgba(141,164,183,0.08)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+              <div style={{width:34,height:34,borderRadius:10,background:isAdmin?'linear-gradient(135deg,#7c3aed,#4f46e5)':'linear-gradient(135deg,#0f766e,#0d9488)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'#fff',flexShrink:0}}>
+                {initial}
+              </div>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:600,color:'#cbd5e1',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:110}} title={displayName}>{displayName}</div>
+                <div style={{fontSize:10,color:isAdmin?'#a78bfa':'#64ceb1',marginTop:2,fontWeight:500}}>{isAdmin?'\u26a1 Administrator':'\u25cf Standard User'}</div>
+              </div>
+            </div>
+            <button onClick={() => { logout(); handleNavClick(); }} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'8px 12px',borderRadius:8,cursor:'pointer',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',color:'#f87171',fontSize:12,fontWeight:600,transition:'all .2s'}}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(239,68,68,0.18)')}
+              onMouseLeave={e=>(e.currentTarget.style.background='rgba(239,68,68,0.08)')}>
+              <LogOut size={13}/> Sign Out
+            </button>
+          </div>
+          <div className="workspace-meta" style={{padding:'4px 12px 6px',fontSize:10,opacity:.5}}>NeuroSeg AI · v3.0</div>
+        </div>
+      </aside>
+    </>
   );
 }
 function Shell({children}:{children:ReactNode}) {
   const [path] = useLocation();
   const { user } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const label = path==='/dashboard'?'Dashboard':path.startsWith('/cases/')?'Case Workspace':path.slice(1).replace(/^\w/,c=>c.toUpperCase());
   const now = new Intl.DateTimeFormat('en',{weekday:'short',month:'short',day:'numeric'}).format(new Date());
+
+  // Close menu on path change
+  useEffect(() => { setMobileMenuOpen(false); }, [path]);
+
   return (
-    <div className="app-shell"><Sidebar/><main className="main-area">
-      <header className="topbar" style={{justifyContent:'space-between'}}>
-        <div className="crumb">NEUROSEG <span style={{color:'#455762',padding:'0 7px'}}>/</span> {label.toUpperCase()}</div>
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <span style={{fontSize:11,color:'#4a5e6a'}}>{now}</span>
-          <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(141,164,183,0.1)',borderRadius:8,fontSize:11,color:'#6b8591'}}>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'#22d3ee',boxShadow:'0 0 6px #22d3ee'}}/>System Online
+    <div className="app-shell">
+      <Sidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}/>
+      <main className="main-area">
+        <header className="topbar" style={{justifyContent:'space-between'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <button
+              className="mobile-menu-btn"
+              onClick={() => setMobileMenuOpen(o => !o)}
+              aria-label="Toggle navigation menu"
+            >
+              <Menu size={18}/>
+            </button>
+            <div className="crumb">NEUROSEG <span style={{color:'#455762',padding:'0 7px'}}>/</span> {label.toUpperCase()}</div>
           </div>
-        </div>
-      </header>
-      {children}
-    </main></div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span className="topbar-date" style={{fontSize:11,color:'#4a5e6a'}}>{now}</span>
+            <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(141,164,183,0.1)',borderRadius:8,fontSize:11,color:'#6b8591'}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:'#22d3ee',boxShadow:'0 0 6px #22d3ee'}}/>
+              <span className="status-text">Online</span>
+            </div>
+          </div>
+        </header>
+        {children}
+      </main>
+    </div>
   );
 }
+
 function PageHead({eyebrow,title,description,actions}:{eyebrow:string;title:string;description:string;actions?:ReactNode}) {
   return <div className="page-head"><div><div className="eyebrow">{eyebrow}</div><h1 className="page-title">{title}</h1><p className="page-desc">{description}</p></div>{actions&&<div>{actions}</div>}</div>;
 }
@@ -178,24 +220,24 @@ function Overview() {
   const chartData=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return{day:d.toLocaleDateString('en',{weekday:'short'}),runs:stats?.recent_jobs.filter(j=>new Date(j.queued_at).toDateString()===d.toDateString()).length||0};});
   return (
     <div className="page">
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
+      <div className="overview-header">
         <div>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:'#0d9488',marginBottom:8}}>WORKSPACE OVERVIEW</div>
           <h1 style={{fontSize:26,fontWeight:800,color:'#f1f5f9',margin:0,letterSpacing:-0.5}}>Welcome, {greetingName} 👋</h1>
           <p style={{color:'#64748b',marginTop:6,fontSize:13}}>Here's what's happening in your NeuroSeg workspace today.</p>
         </div>
-        <div style={{display:'flex',gap:10}}>
+        <div className="overview-header-actions">
           <Link href="/cases" className="btn btn-secondary btn-sm" style={{gap:6}}><FolderOpen size={13}/> Cases</Link>
           <Link href="/analyze" className="btn btn-primary" style={{gap:6}}><Zap size={13}/> New Analysis</Link>
         </div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:24}}>
+      <div className="stat-grid" style={{marginBottom:24,gap:14}}>
         <QuickStat icon={FolderOpen} label="Total Cases" value={String(stats?.total_cases||0)} note="Uploaded scans" color="#0d9488"/>
         <QuickStat icon={CheckCircle2} label="Completed" value={String(stats?.completed_analyses||0)} note="Analyses done" color="#22c55e"/>
         <QuickStat icon={Activity} label="Running" value={String(stats?.running_jobs||0)} note="In progress" color="#f59e0b"/>
         <QuickStat icon={XCircle} label="Failed" value={String(stats?.failed_jobs||0)} note="Needs review" color="#ef4444"/>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:18,alignItems:'start'}}>
+      <div className="overview-grid" style={{gap:18,alignItems:'start'}}>
         <div style={{display:'flex',flexDirection:'column',gap:18}}>
           <section className="card card-pad">
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
@@ -314,8 +356,8 @@ function Cases() {
   const filtered = list.filter(c => c.id.toLowerCase().includes(search.toLowerCase()) || c.label.toLowerCase().includes(search.toLowerCase()));
 
   return <div className="page"><PageHead eyebrow="Case library" title="Your research cases" description="Organize your scan cases and view segmentation results."/>
-    <div className="card" style={{padding:20,marginBottom:15,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-      <div style={{position:'relative',width:300}}>
+    <div className="card cases-filter-bar">
+      <div className="cases-search-box">
         <Search size={14} style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#768e9b'}}/>
         <input className="control" style={{width:'100%',paddingLeft:38}} placeholder="Search cases by ID or notes…" value={search} onChange={e=>setSearch(e.target.value)}/>
       </div>
@@ -522,12 +564,12 @@ function Analyze() {
   };
 
   return <div className="page"><PageHead eyebrow="Image Analysis" title="Analyze Scan" description="Upload an MRI scan to perform segmentation inference."/>
-    <div className="grid" style={{gridTemplateColumns:'minmax(0,1.1fr) minmax(320px,.9fr)',alignItems:'start'}}>
+    <div className="analyze-grid">
       <section className="card card-pad"><div className="section-title">1. Add a local scan file</div><div className="section-sub" style={{marginBottom:15}}>Upload a scan to begin analysis.</div>
         <label className="drop-zone" htmlFor="scan-upload" onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);selectFile(e.dataTransfer.files[0]??null)}} style={{display:'block',cursor:'pointer',borderColor:drag?'#56cfae':undefined}}>
           <span className="stat-icon" style={{width:39,height:39,margin:'0 auto 12px'}}><Upload size={17}/></span><div className="section-title">{file?file.name:'Drop a file here, or browse'}</div><div className="section-sub" style={{marginTop:6}}>NIfTI, NRRD or DICOM · file stays local · local inference</div><input id="scan-upload" type="file" accept=".nii,.gz,.nii.gz,.nrrd,.dcm,.png,.jpg,.jpeg" onChange={e=>{selectFile(e.target.files?.[0]??null);e.currentTarget.value=''}} style={{display:'none'}} data-testid="input-scan-upload"/>
         </label>
-        <div className="grid" style={{gridTemplateColumns:'1fr 1fr',gap:13,marginTop:20}}>
+        <div className="analyze-options-grid">
           <div>
             <label className="field-label">Model</label>
             <div style={{
@@ -645,7 +687,7 @@ function Settings() {
         </Link>
       </div>
     )}
-    <div className="grid" style={{gridTemplateColumns:'minmax(0,1.05fr) minmax(300px,.95fr)',alignItems:'start'}}>
+    <div className="settings-grid">
       <section className="card card-pad"><div className="section-title">Analysis preferences</div><div className="section-sub">Preferences are saved to local browser storage.</div>
         <div className="toggle-row"><div><div className="toggle-title">Auto-run analysis on file selection</div><div className="toggle-desc">Starts the analysis immediately after file selection.</div></div><button className={cls('switch',prefs.autoRun&&'on')} onClick={()=>toggle('autoRun')} role="switch" aria-checked={prefs.autoRun} aria-label="Toggle auto-run analysis"><span/></button></div>
         <div className="toggle-row" style={{border:0}}><div><div className="toggle-title">High-resolution PNG output</div><div className="toggle-desc">Exports the viewer snapshot at double resolution.</div></div><button className={cls('switch',prefs.highResolution&&'on')} onClick={()=>toggle('highResolution')} role="switch" aria-checked={prefs.highResolution} aria-label="Toggle high-resolution PNG output"><span/></button></div>

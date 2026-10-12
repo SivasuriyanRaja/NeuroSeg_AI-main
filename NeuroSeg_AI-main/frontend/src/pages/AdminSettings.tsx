@@ -210,7 +210,7 @@ export default function AdminSettings() {
       )}
 
       {/* Metrics Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div className="stat-grid" style={{ gap: 14, marginBottom: 24 }}>
         <div className="card card-pad" style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b', fontSize: 11 }}>
             <span>Total Registered Users</span>
@@ -281,7 +281,7 @@ export default function AdminSettings() {
             <div className="section-sub">View, promote, demote, or manage workspace users</div>
           </div>
 
-          <div style={{ position: 'relative', width: 280 }}>
+          <div className="cases-search-box" style={{ width: 280, maxWidth: '100%' }}>
             <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
             <input
               type="text"
@@ -420,7 +420,7 @@ export default function AdminSettings() {
       </section>
 
       {/* Admin Feature Overview Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+      <div className="settings-grid" style={{ gap: 18 }}>
         <section className="card card-pad">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <span style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(13,148,136,0.15)', display: 'grid', placeItems: 'center', color: '#0d9488' }}>

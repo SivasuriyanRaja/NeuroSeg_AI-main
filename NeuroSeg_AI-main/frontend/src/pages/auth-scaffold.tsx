@@ -404,6 +404,33 @@ export function AuthScaffold({
         }
         .auth-feature { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #43606e; letter-spacing: 0.3px; }
         .auth-feature-dot { width: 5px; height: 5px; border-radius: 50%; background: #0d9488; opacity: 0.8; box-shadow: 0 0 5px rgba(13,148,136,0.8); }
+
+        @media (max-width: 520px) {
+          .auth-page-bg { padding: 16px 14px; align-items: flex-start; padding-top: 32px; min-height: 100dvh; }
+          .auth-card { max-width: 100%; }
+          .auth-card-inner { padding: 28px 20px; border-radius: 18px; }
+          .auth-divider { margin: 0 -20px 20px; }
+          .auth-brand { gap: 10px; margin-bottom: 20px; }
+          .auth-brand-icon { width: 42px; height: 42px; }
+          .auth-brand-text { font-size: 15px; }
+          .auth-title { font-size: 21px; }
+          .auth-desc { font-size: 12.5px; margin: 0 0 20px; }
+          .auth-input { font-size: 16px; padding: 13px 14px 13px 44px; } /* 16px prevents iOS zoom */
+          .auth-input::placeholder { font-size: 14px; }
+          .auth-submit { font-size: 15px; padding: 14px 20px; }
+          .auth-features { gap: 12px; }
+          .auth-feature { font-size: 10px; }
+          .auth-orb-1 { width: 320px; height: 320px; }
+          .auth-orb-2 { width: 260px; height: 260px; }
+          .auth-orb-3 { display: none; }
+        }
+
+        @media (max-width: 380px) {
+          .auth-card-inner { padding: 22px 16px; }
+          .auth-divider { margin: 0 -16px 18px; }
+          .auth-title { font-size: 19px; }
+          .auth-features { flex-direction: column; align-items: center; gap: 8px; }
+        }
       `}</style>
 
       <div className="auth-page-bg">
