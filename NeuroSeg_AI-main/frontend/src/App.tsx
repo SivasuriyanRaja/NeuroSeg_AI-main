@@ -713,23 +713,13 @@ function Settings() {
   
   return <div className="page"><PageHead eyebrow="Workspace configuration" title="Settings" description="Manage application behavior and storage."/>
     {isAdmin && (
-      <div className="card card-pad" style={{
-        marginBottom: 20,
-        background: 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(13,148,136,0.12) 100%)',
-        border: '1px solid rgba(124,58,237,0.3)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: 'linear-gradient(135deg, #7c3aed, #0d9488)',
-            display: 'grid', placeItems: 'center', color: '#fff', flexShrink: 0,
-            boxShadow: '0 4px 16px rgba(124,58,237,0.3)'
-          }}>
+      <div className="card card-pad settings-admin-banner">
+        <div className="settings-admin-banner-info">
+          <span className="settings-admin-banner-icon">
             <ShieldCheck size={22} />
           </span>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{minWidth: 0}}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <div className="section-title" style={{ fontSize: 15, color: '#f1f5f9' }}>Administration Control Center</div>
               <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 12, background: 'rgba(124,58,237,0.25)', color: '#c084fc', border: '1px solid rgba(124,58,237,0.4)' }}>
                 ADMIN EXCLUSIVE
@@ -740,15 +730,15 @@ function Settings() {
             </div>
           </div>
         </div>
-        <Link href="/settings/admin" className="btn btn-primary" style={{ gap: 8, padding: '9px 16px', background: 'linear-gradient(135deg, #7c3aed, #0d9488)', borderColor: '#7c3aed', color: '#fff' }}>
+        <Link href="/settings/admin" className="btn btn-primary settings-admin-banner-btn">
           <UserCog size={14} /> Open Admin Portal <ChevronRight size={14} />
         </Link>
       </div>
     )}
     <div className="settings-grid">
       <section className="card card-pad"><div className="section-title">Analysis preferences</div><div className="section-sub">Preferences are saved to local browser storage.</div>
-        <div className="toggle-row"><div><div className="toggle-title">Auto-run analysis on file selection</div><div className="toggle-desc">Starts the analysis immediately after file selection.</div></div><button className={cls('switch',prefs.autoRun&&'on')} onClick={()=>toggle('autoRun')} role="switch" aria-checked={prefs.autoRun} aria-label="Toggle auto-run analysis"><span/></button></div>
-        <div className="toggle-row" style={{border:0}}><div><div className="toggle-title">High-resolution PNG output</div><div className="toggle-desc">Exports the viewer snapshot at double resolution.</div></div><button className={cls('switch',prefs.highResolution&&'on')} onClick={()=>toggle('highResolution')} role="switch" aria-checked={prefs.highResolution} aria-label="Toggle high-resolution PNG output"><span/></button></div>
+        <div className="toggle-row"><div style={{minWidth:0,flex:1}}><div className="toggle-title">Auto-run analysis on file selection</div><div className="toggle-desc">Starts the analysis immediately after file selection.</div></div><button className={cls('switch',prefs.autoRun&&'on')} onClick={()=>toggle('autoRun')} role="switch" aria-checked={prefs.autoRun} aria-label="Toggle auto-run analysis"><span/></button></div>
+        <div className="toggle-row" style={{border:0}}><div style={{minWidth:0,flex:1}}><div className="toggle-title">High-resolution PNG output</div><div className="toggle-desc">Exports the viewer snapshot at double resolution.</div></div><button className={cls('switch',prefs.highResolution&&'on')} onClick={()=>toggle('highResolution')} role="switch" aria-checked={prefs.highResolution} aria-label="Toggle high-resolution PNG output"><span/></button></div>
       </section>
       <div className="grid" style={{gap:14}}>
         <section className="card card-pad"><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div className="section-title">Storage overview</div><div className="section-sub">Local cache capacity</div></div><HardDrive size={17} color="#64ceb1"/></div>
