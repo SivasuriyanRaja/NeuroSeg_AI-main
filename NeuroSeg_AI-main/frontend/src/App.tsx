@@ -692,13 +692,21 @@ function PublicLanding() {
         <div className="landing-preview-head"><span style={{display:'flex',alignItems:'center',gap:7}}><img src="/neulogo.png" alt="NeuroSeg" style={{width:18,height:18,objectFit:'contain',borderRadius:4}}/><span className="demo-dot"/> NEURAL FUSION VIEWER</span><span className="mono">AXIAL · SLICE 084</span></div>
         <div className="landing-preview-video">
           <video
-            src="/brainvd.mp4"
+            ref={(el) => {
+              if (el) {
+                el.muted = true;
+                el.play().catch(() => {});
+              }
+            }}
             autoPlay
             loop
             muted
             playsInline
+            poster="/brainbg.jpg"
             className="landing-brain-video"
-          />
+          >
+            <source src="/brainvd.mp4" type="video/mp4" />
+          </video>
         </div>
         <div className="landing-preview-foot"><div><span className="preview-metric-label">FUSION DICE SCORE</span><strong>0.92</strong></div><div><span className="preview-metric-label">ACTIVE ENGINE</span><strong>NeuroSeg Fusion Engine v3.0</strong></div><span className="status status-ready">ONLINE</span></div>
       </div>

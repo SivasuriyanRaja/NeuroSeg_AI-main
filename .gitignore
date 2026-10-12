@@ -58,6 +58,7 @@ runs/
 *.zip
 *.tar*
 *.mp4
+!**/brainvd.mp4
 *.mkv
 *.avi
 *.mov

@@ -33,5 +33,6 @@ dist-ssr
 
 # Large binary assets — host on CDN (Cloudinary/S3), do NOT track in git
 *.mp4
+!public/brainvd.mp4
 *.mov
 *.avi
