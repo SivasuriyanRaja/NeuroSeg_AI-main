@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, Route, Router as WouterRouter, Switch, useLocation, useParams } from 'wouter';
+import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation, useParams } from 'wouter';
 import {
   Activity, ArrowDownRight, ArrowUpRight, Brain, Check, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown,
   CircleHelp, FileImage, FileJson, FileText, FlaskConical, LogOut,
@@ -14,7 +14,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { LoginPage } from './pages/login-page';
 import { RegisterPage } from './pages/register-page';
 import AdminSettings from './pages/AdminSettings';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth, AuthProvider } from './contexts/AuthContext';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
@@ -675,17 +675,31 @@ function WorkspaceApp() {
 }
 
 function PublicLanding() {
+  const { user } = useAuth();
   return <main className="landing-page">
     <header className="landing-nav">
-      <Link href="/dashboard" className="brand"><span className="brand-mark" style={{background:'rgba(13,148,136,0.15)',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',padding:4}}><img src="/neulogo.png" alt="NeuroSeg Logo" style={{width:24,height:24,objectFit:'contain',borderRadius:4}}/></span><span><span className="brand-name">NeuroSeg</span><span className="brand-sub">AI workspace</span></span></Link>
-      <div className="landing-nav-actions"><Link href="/dashboard" className="btn btn-primary">Open workspace <ChevronRight size={15}/></Link></div>
+      <Link href={user ? "/dashboard" : "/"} className="brand"><span className="brand-mark" style={{background:'rgba(13,148,136,0.15)',border:'1px solid rgba(13,148,136,0.3)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',padding:4}}><img src="/neulogo.png" alt="NeuroSeg Logo" style={{width:24,height:24,objectFit:'contain',borderRadius:4}}/></span><span><span className="brand-name">NeuroSeg</span><span className="brand-sub">AI workspace</span></span></Link>
+      <div className="landing-nav-actions">
+        {user ? (
+          <Link href="/dashboard" className="btn btn-primary">Open workspace <ChevronRight size={15}/></Link>
+        ) : (
+          <Link href="/login" className="btn btn-primary">Sign in <ChevronRight size={15}/></Link>
+        )}
+      </div>
     </header>
     <section className="landing-hero">
       <div className="landing-copy">
         <div className="landing-eyebrow"><span className="demo-dot"/> MULTIMODAL NEUROIMAGING WORKSPACE</div>
         <h1>Imaging research,<br/><span>clearly organized.</span></h1>
         <p>An advanced clinical intelligence platform for brain MRI tumor detection, vision-guided contour segmentation, and unified case management.</p>
-        <div className="landing-actions"><Link href="/login" className="btn btn-primary">Enter AI Workspace <ChevronRight size={15}/></Link><Link href="/cases" className="btn btn-quiet">Explore MRI Cases</Link></div>
+        <div className="landing-actions">
+          {user ? (
+            <Link href="/dashboard" className="btn btn-primary">Go to Workspace <ChevronRight size={15}/></Link>
+          ) : (
+            <Link href="/login" className="btn btn-primary">Enter AI Workspace <ChevronRight size={15}/></Link>
+          )}
+          <Link href={user ? "/cases" : "/login"} className="btn btn-quiet">Explore MRI Cases</Link>
+        </div>
         <div className="landing-privacy"><ShieldAlert size={14}/> AI-Assisted MRI Segmentation · Unified Fusion Engine · Research &amp; Clinical Analysis</div>
       </div>
       <div className="landing-preview">
@@ -720,7 +734,86 @@ function PublicLanding() {
   </main>;
 }
 
-import { AuthProvider } from './contexts/AuthContext';
+function ProtectedWorkspace() {
+  const { user, token, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#090d10',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        color: '#94a3b8',
+        fontFamily: 'Inter, system-ui, sans-serif'
+      }}>
+        <div style={{
+          width: 36,
+          height: 36,
+          border: '3px solid rgba(13,148,136,0.2)',
+          borderTopColor: '#0d9488',
+          borderRadius: '50%',
+          animation: 'spin 0.7s linear infinite'
+        }} />
+        <div style={{ fontSize: 13, letterSpacing: 0.5 }}>Verifying authentication...</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (!token || !user) {
+    return <Redirect to="/login" replace />;
+  }
+
+  return <WorkspaceApp />;
+}
+
+function GuestRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, token, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#090d10',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        color: '#94a3b8',
+        fontFamily: 'Inter, system-ui, sans-serif'
+      }}>
+        <div style={{
+          width: 36,
+          height: 36,
+          border: '3px solid rgba(13,148,136,0.2)',
+          borderTopColor: '#0d9488',
+          borderRadius: '50%',
+          animation: 'spin 0.7s linear infinite'
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (token && user) {
+    return <Redirect to="/dashboard" replace />;
+  }
+
+  return <Component />;
+}
+
+function GuestLoginPage() {
+  return <GuestRoute component={LoginPage} />;
+}
+
+function GuestRegisterPage() {
+  return <GuestRoute component={RegisterPage} />;
+}
 
 export default function App() {
   return (
@@ -728,9 +821,9 @@ export default function App() {
       <AuthProvider>
         <Switch>
           <Route path="/" component={PublicLanding}/>
-          <Route path="/login" component={LoginPage}/>
-          <Route path="/register" component={RegisterPage}/>
-          <Route component={WorkspaceApp}/>
+          <Route path="/login" component={GuestLoginPage}/>
+          <Route path="/register" component={GuestRegisterPage}/>
+          <Route component={ProtectedWorkspace}/>
         </Switch>
       </AuthProvider>
     </WouterRouter>

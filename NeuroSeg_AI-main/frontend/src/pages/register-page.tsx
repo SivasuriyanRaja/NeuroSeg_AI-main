@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Mail, User, Stethoscope, GraduationCap, FlaskConical } from 'lucide-react';
 import { AuthScaffold, PasswordField } from './auth-scaffold';
-import { useLocation } from 'wouter';
+import { Redirect, useLocation } from 'wouter';
 import { useAuth } from '../contexts/AuthContext';
 
 const PROFESSION_OPTIONS = [
@@ -12,13 +12,17 @@ const PROFESSION_OPTIONS = [
 
 export function RegisterPage() {
   const [, navigate] = useLocation();
-  const { login } = useAuth();
+  const { user, token, loading: authLoading, login } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [profession, setProfession] = useState('doctor');
   const [prefix, setPrefix] = useState('Dr.');
+
+  if (!authLoading && token && user) {
+    return <Redirect to="/dashboard" replace />;
+  }
 
   function selectProfession(val: string) {
     setProfession(val);
@@ -92,7 +96,7 @@ export function RegisterPage() {
         const json = await loginRes.json();
         login(json.access_token, userData, '/dashboard');
       } else {
-        login('', userData, '/dashboard');
+        navigate('/login', { replace: true });
       }
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');

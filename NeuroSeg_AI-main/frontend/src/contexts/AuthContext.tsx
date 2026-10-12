@@ -46,6 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [, setLocation] = useLocation()
 
+  const logout = () => {
+    try {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+    } catch {}
+    setToken(null)
+    setUser(null)
+    setLocation('/login', { replace: true })
+  }
+
   useEffect(() => {
     if (token) {
       try {
@@ -61,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .catch(err => {
           console.warn('Failed to fetch /auth/me:', err)
-          if (err?.response?.status === 401 && !localStorage.getItem('user')) {
+          if (err?.response?.status === 401 || err?.response?.status === 403) {
             logout()
           }
         })
@@ -78,6 +88,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token])
 
+  // Sync auth state with bfcache, cross-tab storage, and unauthorized events
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout()
+    }
+    const syncStorage = (e: StorageEvent) => {
+      if (e.key === 'token') {
+        if (!e.newValue) {
+          logout()
+        } else {
+          setToken(e.newValue)
+        }
+      }
+    }
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        const curToken = localStorage.getItem('token')
+        if (!curToken && token) {
+          logout()
+        }
+      }
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    window.addEventListener('storage', syncStorage)
+    window.addEventListener('pageshow', onPageShow)
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+      window.removeEventListener('storage', syncStorage)
+      window.removeEventListener('pageshow', onPageShow)
+    }
+  }, [token])
+
   const login = (newToken: string, userData?: User | null, redirectPath: string = '/dashboard') => {
     try {
       localStorage.setItem('token', newToken)
@@ -90,18 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setToken(newToken)
     if (redirectPath) {
-      setLocation(redirectPath)
+      setLocation(redirectPath, { replace: true })
     }
-  }
-
-  const logout = () => {
-    try {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-    } catch {}
-    setToken(null)
-    setUser(null)
-    setLocation('/login')
   }
 
   const updateUser = (data: Partial<User>) => {

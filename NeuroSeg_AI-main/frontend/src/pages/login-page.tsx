@@ -1,15 +1,18 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Mail } from 'lucide-react';
 import { AuthScaffold, PasswordField } from './auth-scaffold';
-import { useLocation } from 'wouter';
+import { Redirect } from 'wouter';
 import { useAuth } from '../contexts/AuthContext';
 
 export function LoginPage() {
-  const [, navigate] = useLocation();
-  const { login } = useAuth();
+  const { user, token, loading: authLoading, login } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  if (!authLoading && token && user) {
+    return <Redirect to="/dashboard" replace />;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
